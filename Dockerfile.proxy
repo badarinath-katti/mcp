@@ -1,0 +1,25 @@
+FROM amazoncorretto:17-alpine
+
+# Install supervisord, curl, and nginx
+RUN apk add --no-cache supervisor curl nginx
+
+WORKDIR /app
+
+# Copy both JAR files
+COPY user-service/target/user-service-0.0.1-SNAPSHOT.jar user-service.jar
+COPY order-service/target/order-service-0.0.1-SNAPSHOT.jar order-service.jar
+
+# Create supervisor configuration
+RUN mkdir -p /etc/supervisor/conf.d
+RUN mkdir -p /var/log/nginx
+RUN mkdir -p /run/nginx
+
+# Copy configuration files
+COPY supervisord-proxy.conf /etc/supervisor/conf.d/supervisord.conf
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY start-services.sh /app/start-services.sh
+RUN chmod +x /app/start-services.sh
+
+EXPOSE 8080
+
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

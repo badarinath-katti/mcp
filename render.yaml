@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: user-service
+    env: docker
+    dockerfilePath: ./user-service/Dockerfile
+    plan: free
+    buildCommand: cd user-service && mvn clean package -DskipTests
+    startCommand: java -jar target/user-service-0.0.1-SNAPSHOT.jar
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: SERVER_PORT
+        value: 8080
+    healthCheckPath: /api/users/health
+
+  - type: web
+    name: order-service
+    env: docker
+    dockerfilePath: ./order-service/Dockerfile
+    plan: free
+    buildCommand: cd order-service && mvn clean package -DskipTests
+    startCommand: java -jar target/order-service-0.0.1-SNAPSHOT.jar
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: SERVER_PORT
+        value: 8081
+      - key: USER_SERVICE_URL
+        fromService:
+          type: web
+          name: user-service
+          property: host
+    healthCheckPath: /api/orders/health

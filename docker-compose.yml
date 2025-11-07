@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  user-service:
+    build:
+      context: ./user-service
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - microservices-network
+
+  order-service:
+    build:
+      context: ./order-service
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - USER_SERVICE_URL=http://user-service:8080
+      - SERVER_PORT=8081
+    depends_on:
+      - user-service
+    networks:
+      - microservices-network
+
+networks:
+  microservices-network:
+    driver: bridge
