@@ -12,6 +12,47 @@ check_docker() {
     echo "✅ Docker is running"
 }
 
+# Function to check if Maven is installed
+check_maven() {
+    if ! command -v mvn &> /dev/null; then
+        echo "❌ Maven is not installed. Please install Maven first."
+        echo "💡 Install with: brew install maven"
+        exit 1
+    fi
+    echo "✅ Maven is available"
+}
+
+# Function to build JAR files
+build_jars() {
+    echo "🔨 Building JAR files with Maven..."
+    
+    # Build user-service
+    echo "Building user-service..."
+    cd user-service
+    if mvn clean package -DskipTests; then
+        echo "✅ User service JAR built successfully"
+    else
+        echo "❌ Failed to build user-service JAR"
+        cd ..
+        return 1
+    fi
+    cd ..
+    
+    # Build order-service
+    echo "Building order-service..."
+    cd order-service
+    if mvn clean package -DskipTests; then
+        echo "✅ Order service JAR built successfully"
+    else
+        echo "❌ Failed to build order-service JAR"
+        cd ..
+        return 1
+    fi
+    cd ..
+    
+    return 0
+}
+
 # Function to try different base images
 try_docker_build() {
     echo "🔨 Building Docker images..."
@@ -93,19 +134,25 @@ run_manually() {
 
 # Main execution
 check_docker
+check_maven
 
-if try_docker_build; then
-    if run_with_compose; then
-        echo "🎉 Successfully running with docker-compose!"
+if build_jars; then
+    if try_docker_build; then
+        if run_with_compose; then
+            echo "🎉 Successfully running with docker-compose!"
+        else
+            echo "⚠️  Docker-compose failed, trying manual approach..."
+            run_manually
+        fi
     else
-        echo "⚠️  Docker-compose failed, trying manual approach..."
-        run_manually
+        echo "❌ Docker build failed. Check your Docker setup and network connectivity."
+        echo ""
+        echo "💡 Alternative: Run locally with Java:"
+        echo "   Terminal 1: cd user-service && java -jar target/user-service-0.0.1-SNAPSHOT.jar"
+        echo "   Terminal 2: cd order-service && SERVER_PORT=8081 USER_SERVICE_URL=http://localhost:8080 java -jar target/order-service-0.0.1-SNAPSHOT.jar"
+        exit 1
     fi
 else
-    echo "❌ Docker build failed. Check your Docker setup and network connectivity."
-    echo ""
-    echo "💡 Alternative: Run locally with Java:"
-    echo "   Terminal 1: cd user-service && java -jar target/user-service-0.0.1-SNAPSHOT.jar"
-    echo "   Terminal 2: cd order-service && SERVER_PORT=8081 USER_SERVICE_URL=http://localhost:8080 java -jar target/order-service-0.0.1-SNAPSHOT.jar"
+    echo "❌ Maven build failed. Check your Maven setup and project structure."
     exit 1
 fi
